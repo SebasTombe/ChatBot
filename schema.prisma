@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  email         String          @unique
+  password      String
+  name          String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  tasks         Task[]
+  voiceCommands VoiceCommand[]
+  preference    UserPreference?
+}
+
+model Task {
+  id          Int       @id @default(autoincrement())
+  title       String
+  completed   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  dueDate     DateTime?
+  description String?   @db.Text
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, completed])
+  @@index([dueDate])
+}
+
+model VoiceCommand {
+  id        Int      @id @default(autoincrement())
+  command   String   @db.Text
+  result    String?  @db.Text
+  timestamp DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([timestamp])
+}
+
+model UserPreference {
+  id                   Int     @id @default(autoincrement())
+  voiceId              String  @default("Conchita") @db.VarChar(50)
+  language             String  @default("es-ES") @db.VarChar(10)
+  notificationsEnabled Boolean @default(true)
+  userId               Int     @unique
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
