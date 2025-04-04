@@ -1,13 +1,21 @@
 "use client"
 
 import { CheckCircle, Circle, Calendar } from "lucide-react"
-import type { Task } from "@/types/task"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
 
+interface Task {
+  id: number
+  title: string
+  completed: boolean
+  createdAt: string
+  dueDate: string | null
+  description: string | null
+}
+
 interface TaskListProps {
   tasks: Task[]
-  onComplete: (id: string) => void
+  onComplete: (id: number) => void
   completed?: boolean
 }
 
