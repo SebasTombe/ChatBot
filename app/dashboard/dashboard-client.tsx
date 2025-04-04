@@ -157,6 +157,24 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
         speakText("No encontré esa tarea en tu lista de pendientes.")
       }
     }
+    
+    // Eliminar tarea
+    else if (lowerTranscript.includes("eliminar tarea")) {
+      const taskTitle = transcript.replace(/eliminar tarea/i, "").trim()
+      const taskIndex = tasks.findIndex((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()))
+      
+      console.log(taskTitle, taskIndex)
+      if (taskIndex !== -1) {
+        const updatedTasks = [...tasks]
+        updatedTasks.splice(taskIndex, 1)
+        setTasks(updatedTasks)
+        const confirmationText = `Tarea eliminada: ${tasks[taskIndex].title}`
+        setFeedback(confirmationText)
+        speakText(confirmationText)
+      } else {
+        speakText("No encontré esa tarea en tu lista.")
+      }
+    }
   }
 
   const speakText = async (text: string) => {
