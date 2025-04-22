@@ -197,7 +197,7 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
               categoryId,
             }),
           })
-
+          
           if (!response.ok) {
             throw new Error("Error al crear la tarea")
           }
@@ -302,7 +302,7 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
       if (match) {
         const categoryName = match[1].trim().toLowerCase()
         const taskTitle = match[2].trim()
-
+        
         // Buscar la categoría por nombre
         const category = categories.find((c) => c.name.toLowerCase() === categoryName)
 
@@ -532,6 +532,8 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
         body: JSON.stringify({ text }),
       })
 
+      console.log('r1', response);
+      
       if (response.ok) {
         const audioBlob = await response.blob()
         const audioUrl = URL.createObjectURL(audioBlob)
@@ -542,21 +544,21 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
         }
       } else {
         // Si falla, usar la API de síntesis de voz del navegador
-        if ("speechSynthesis" in window) {
+        /*if ("speechSynthesis" in window) {
           const utterance = new SpeechSynthesisUtterance(text)
           utterance.lang = "es-ES"
           window.speechSynthesis.speak(utterance)
-        }
+        }*/
       }
     } catch (error) {
       console.error("Error al reproducir audio:", error)
 
       // Usar síntesis de voz del navegador como respaldo
-      if ("speechSynthesis" in window) {
+      /*if ("speechSynthesis" in window) {
         const utterance = new SpeechSynthesisUtterance(text)
         utterance.lang = "es-ES"
         window.speechSynthesis.speak(utterance)
-      }
+      }*/
     }
   }
 

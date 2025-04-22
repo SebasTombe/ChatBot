@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Verificar credenciales
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    if (!process.env.VITE_AWS_ACCESS_KEY_ID || !process.env.VITE_AWS_SECRET_ACCESS_KEY) {
       console.error("Credenciales de AWS no configuradas")
       return NextResponse.json({ error: "Credenciales de AWS no configuradas" }, { status: 500 })
     }
@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     // Configurar AWS
     const polly = new AWS.Polly({
       region: "us-east-1",
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      accessKeyId: process.env.VITE_AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.VITE_AWS_SECRET_ACCESS_KEY,
     })
 
     // Usar una voz estándar en lugar de neural para mayor compatibilidad
