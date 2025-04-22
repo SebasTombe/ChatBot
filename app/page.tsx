@@ -12,4 +12,3 @@ export default async function Home() {
   // Si el usuario está autenticado, redirigir al dashboard
   redirect("/dashboard")
 }
-

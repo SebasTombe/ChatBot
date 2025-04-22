@@ -77,7 +77,6 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
     return () => clearInterval(interval)
   }, [])
 
-
   // Efecto para recargar tareas cuando cambia el filtro de categoría
   useEffect(() => {
     fetchTasks()
@@ -240,24 +239,6 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
         }
       } else {
         speakText("No encontré esa tarea en tu lista de pendientes.")
-      }
-    }
-
-    // Eliminar tarea
-    else if (lowerTranscript.includes("eliminar tarea")) {
-      const taskTitle = transcript.replace(/eliminar tarea/i, "").trim()
-      const taskIndex = tasks.findIndex((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()))
-
-      console.log(taskTitle, taskIndex)
-      if (taskIndex !== -1) {
-        const updatedTasks = [...tasks]
-        updatedTasks.splice(taskIndex, 1)
-        setTasks(updatedTasks)
-        const confirmationText = `Tarea eliminada: ${tasks[taskIndex].title}`
-        setFeedback(confirmationText)
-        speakText(confirmationText)
-      } else {
-        speakText("No encontré esa tarea en tu lista.")
       }
     }
 
@@ -566,7 +547,7 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
                 <CheckCircle className="text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <TaskList tasks={tasks.filter((t) => t.completed)} onComplete={() => { }} completed />
+                <TaskList tasks={tasks.filter((t) => t.completed)} onComplete={() => {}} completed />
               </CardContent>
             </Card>
           </div>
@@ -589,7 +570,6 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
       />
 
       <audio ref={audioRef} className="hidden" />
-    </main >
+    </main>
   )
 }
-

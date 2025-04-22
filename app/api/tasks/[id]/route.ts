@@ -36,7 +36,6 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       }
     }
 
-
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -89,4 +88,3 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: "Error al eliminar tarea" }, { status: 500 })
   }
 }
-

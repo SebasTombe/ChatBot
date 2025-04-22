@@ -68,4 +68,3 @@ export default function VoiceRecognition({ onResult, onStop }: VoiceRecognitionP
     </div>
   )
 }
-

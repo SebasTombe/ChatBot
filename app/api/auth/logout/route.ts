@@ -5,4 +5,3 @@ export async function POST() {
   cookies().delete("auth-token")
   return NextResponse.json({ success: true })
 }
-

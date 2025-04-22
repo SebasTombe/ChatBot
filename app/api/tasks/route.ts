@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
-    const { title, dueDate, description } = await req.json()
+    const { title, dueDate, description, categoryId } = await req.json()
 
     if (!title) {
       return NextResponse.json({ error: "El título es obligatorio" }, { status: 400 })
@@ -87,4 +87,3 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Error al crear tarea" }, { status: 500 })
   }
 }
-

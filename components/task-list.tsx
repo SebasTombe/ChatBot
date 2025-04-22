@@ -10,6 +10,7 @@ interface Category {
   name: string
   color: string
 }
+
 interface Task {
   id: number
   title: string
@@ -38,8 +39,9 @@ export default function TaskList({ tasks, onComplete, completed = false }: TaskL
       {tasks.map((task) => (
         <li
           key={task.id}
-          className={`flex items-start justify-between p-3 rounded-md ${completed ? "bg-gray-50" : "bg-white border border-gray-200"
-            }`}
+          className={`flex items-start justify-between p-3 rounded-md ${
+            completed ? "bg-gray-50" : "bg-white border border-gray-200"
+          }`}
         >
           <div className="flex items-start gap-3">
             <button
@@ -74,4 +76,3 @@ export default function TaskList({ tasks, onComplete, completed = false }: TaskL
     </ul>
   )
 }
-

@@ -6,4 +6,3 @@ export interface Task {
   dueDate?: string
   description?: string
 }
-

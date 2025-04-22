@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import AWS from "aws-sdk"
+import { PollyClient, SynthesizeSpeechCommand } from "@aws-sdk/client-polly"
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,36 +15,54 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Credenciales de AWS no configuradas" }, { status: 500 })
     }
 
-    // Configurar AWS
-    const polly = new AWS.Polly({
+    // Crear cliente de Polly con la versión 3 del SDK
+    const pollyClient = new PollyClient({
       region: "us-east-1",
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
     })
 
-    // Usar una voz estándar en lugar de neural para mayor compatibilidad
+    // Configurar parámetros para la síntesis de voz
     const params = {
       OutputFormat: "mp3",
       Text: text,
       TextType: "text",
-      VoiceId: "Penelope", // Voz en español (femenina) estándar
-      // Omitir Engine para usar el estándar
+      VoiceId: "Conchita", // Voz en español (femenina)
+      Engine: "neural", // Usar el motor neural para mejor calidad
+      LanguageCode: "es-ES",
     }
 
-    const synthResult = await polly.synthesizeSpeech(params).promise()
+    // Ejecutar comando de síntesis
+    const command = new SynthesizeSpeechCommand(params)
+    const synthResult = await pollyClient.send(command)
 
+    // Verificar que se haya generado el audio
     if (!synthResult.AudioStream) {
       console.error("No se generó el stream de audio")
       return NextResponse.json({ error: "No se pudo generar el audio" }, { status: 500 })
     }
 
     // Convertir el AudioStream a un Buffer
-    const audioBuffer = synthResult.AudioStream as Buffer
+    const chunks = []
+    const reader = synthResult.AudioStream.getReader()
+
+    let done = false
+    while (!done) {
+      const { value, done: doneReading } = await reader.read()
+      done = doneReading
+      if (value) {
+        chunks.push(value)
+      }
+    }
+
+    const audioBuffer = Buffer.concat(chunks)
 
     // Devolver el audio como respuesta
     return new NextResponse(audioBuffer, {
       headers: {
-        "Content-Type": "audio/mp3",
+        "Content-Type": "audio/mpeg",
         "Content-Length": audioBuffer.length.toString(),
       },
     })

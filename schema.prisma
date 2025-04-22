@@ -11,14 +11,16 @@ datasource db {
 }
 
 model User {
-  id         Int          @id @default(autoincrement())
-  email      String       @unique
-  password   String
-  name       String?
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-  tasks      Task[]
-  categories Category[]
+  id             Int             @id @default(autoincrement())
+  email          String          @unique
+  password       String
+  name           String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  tasks          Task[]
+  categories     Category[]
+  VoiceCommand   VoiceCommand[]
+  UserPreference UserPreference?
 }
 
 model Category {
