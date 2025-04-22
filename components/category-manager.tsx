@@ -5,16 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Edit, Plus, Trash2 } from "lucide-react"
 import CategoryDialog from "./category-dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import ConfirmationDialog from "@/components/confirmation-dialog"
 
 interface Category {
   id: number
@@ -193,21 +184,15 @@ export default function CategoryManager() {
         />
 
         {/* Diálogo de confirmación para eliminar */}
-        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta acción eliminará la categoría "{selectedCategory?.name}". Las tareas asociadas a esta categoría no
-                se eliminarán, pero quedarán sin categoría.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDeleteCategory}>Eliminar</AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmationDialog
+          open={deleteDialogOpen}
+          onOpenChange={setDeleteDialogOpen}
+          title="¿Estás seguro?"
+          description={`Esta acción eliminará la categoría "${selectedCategory?.name}". Las tareas asociadas a esta categoría no se eliminarán, pero quedarán sin categoría.`}
+          confirmText="Eliminar"
+          cancelText="Cancelar"
+          onConfirm={handleDeleteCategory}
+        />
       </CardContent>
     </Card>
   )

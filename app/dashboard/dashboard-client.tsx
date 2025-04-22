@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import CategoryBadge from "@/components/category-badge"
+import ConfirmationDialog from "@/components/confirmation-dialog"
 
 interface Category {
   id: number
@@ -60,6 +61,12 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
   const [activeTab, setActiveTab] = useState("tasks")
   const [categories, setCategories] = useState<Category[]>([])
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null | "uncategorized">(null)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [taskToDelete, setTaskToDelete] = useState<number | null>(null)
+  const [voiceConfirmOpen, setVoiceConfirmOpen] = useState(false)
+  const [pendingVoiceAction, setPendingVoiceAction] = useState<{ type: string; data: any } | null>(null)
+  // Añadir este estado para el diálogo de confirmación de cierre de sesión
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false)
 
   useEffect(() => {
     // Cargar categorías
@@ -268,6 +275,178 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
         }
       }
     }
+
+    // Asignar categoría a una tarea específica
+    else if (
+      lowerTranscript.includes("asignar categoría") ||
+      lowerTranscript.includes("cambiar categoría") ||
+      lowerTranscript.includes("poner categoría")
+    ) {
+      // Extraer el nombre de la tarea y la categoría
+      const match = transcript.match(/(?:asignar|cambiar|poner) categoría (.+?) (?:a|para) (?:la )?tarea (.+)/i)
+
+      if (match) {
+        const categoryName = match[1].trim().toLowerCase()
+        const taskTitle = match[2].trim()
+
+        // Buscar la categoría por nombre
+        const category = categories.find((c) => c.name.toLowerCase() === categoryName)
+
+        if (!category) {
+          speakText(`No encontré la categoría ${categoryName}. Por favor, crea esta categoría primero.`)
+          return
+        }
+
+        // Buscar la tarea por título
+        const task = tasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()) && !t.completed)
+
+        if (!task) {
+          speakText(`No encontré la tarea "${taskTitle}" en tu lista de pendientes.`)
+          return
+        }
+
+        // Actualizar la tarea con la nueva categoría
+        try {
+          const response = await fetch(`/api/tasks/${task.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              categoryId: category.id,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error("Error al actualizar la tarea")
+          }
+
+          const updatedTask = await response.json()
+          setTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)))
+
+          const confirmationText = `He asignado la categoría ${category.name} a la tarea "${task.title}"`
+          setFeedback(confirmationText)
+          speakText(confirmationText)
+        } catch (error) {
+          console.error("Error al asignar categoría:", error)
+          speakText("Hubo un error al asignar la categoría a la tarea")
+        }
+      } else {
+        speakText(
+          "No entendí qué categoría quieres asignar a qué tarea. Por favor, intenta de nuevo con el formato: Asignar categoría [nombre de categoría] a tarea [nombre de tarea]",
+        )
+      }
+    }
+
+    // Asignar categoría a todas las tareas o a un grupo de tareas
+    else if (
+      lowerTranscript.includes("asignar categoría a todas") ||
+      lowerTranscript.includes("cambiar categoría de todas") ||
+      lowerTranscript.includes("categorizar todas")
+    ) {
+      // Extraer el nombre de la categoría
+      const match = transcript.match(
+        /(?:asignar categoría|cambiar categoría|categorizar) (?:a |de )?todas (?:las tareas )?(?:a |como |en )?(.+)/i,
+      )
+
+      if (match) {
+        const categoryName = match[1].trim().toLowerCase()
+
+        // Buscar la categoría por nombre
+        const category = categories.find((c) => c.name.toLowerCase() === categoryName)
+
+        if (!category) {
+          speakText(`No encontré la categoría ${categoryName}. Por favor, crea esta categoría primero.`)
+          return
+        }
+
+        // Obtener todas las tareas pendientes
+        const pendingTasks = tasks.filter((t) => !t.completed)
+
+        if (pendingTasks.length === 0) {
+          speakText("No tienes tareas pendientes para categorizar.")
+          return
+        }
+
+        // Guardar la acción pendiente y mostrar el diálogo de confirmación
+        setPendingVoiceAction({
+          type: "assignCategoryToAll",
+          data: {
+            categoryId: category.id,
+            categoryName: category.name,
+            pendingTasks: pendingTasks,
+          },
+        })
+        setVoiceConfirmOpen(true)
+
+        const confirmationText = `¿Quieres asignar la categoría ${category.name} a tus ${pendingTasks.length} tareas pendientes?`
+        setFeedback(confirmationText)
+        speakText(confirmationText)
+        return
+      } else {
+        speakText(
+          "No entendí qué categoría quieres asignar a todas las tareas. Por favor, intenta de nuevo con el formato: Asignar categoría a todas las tareas como [nombre de categoría]",
+        )
+      }
+    }
+
+    // Quitar categoría de una tarea
+    else if (
+      lowerTranscript.includes("quitar categoría") ||
+      lowerTranscript.includes("eliminar categoría") ||
+      lowerTranscript.includes("remover categoría")
+    ) {
+      // Extraer el nombre de la tarea
+      const match = transcript.match(/(?:quitar|eliminar|remover) categoría (?:de |a )?(?:la )?tarea (.+)/i)
+
+      if (match) {
+        const taskTitle = match[1].trim()
+
+        // Buscar la tarea por título
+        const task = tasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()))
+
+        if (!task) {
+          speakText(`No encontré la tarea "${taskTitle}" en tu lista.`)
+          return
+        }
+
+        if (!task.categoryId) {
+          speakText(`La tarea "${task.title}" no tiene una categoría asignada.`)
+          return
+        }
+
+        // Actualizar la tarea para quitar la categoría
+        try {
+          const response = await fetch(`/api/tasks/${task.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              categoryId: null,
+            }),
+          })
+
+          if (!response.ok) {
+            throw new Error("Error al actualizar la tarea")
+          }
+
+          const updatedTask = await response.json()
+          setTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)))
+
+          const confirmationText = `He quitado la categoría de la tarea "${task.title}"`
+          setFeedback(confirmationText)
+          speakText(confirmationText)
+        } catch (error) {
+          console.error("Error al quitar categoría:", error)
+          speakText("Hubo un error al quitar la categoría de la tarea")
+        }
+      } else {
+        speakText(
+          "No entendí de qué tarea quieres quitar la categoría. Por favor, intenta de nuevo con el formato: Quitar categoría de tarea [nombre de tarea]",
+        )
+      }
+    }
   }
 
   const speakText = async (text: string) => {
@@ -326,7 +505,13 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
     return months.findIndex((m) => monthName.toLowerCase().includes(m))
   }
 
-  const handleLogout = async () => {
+  // Modificar la función handleLogout
+  const handleLogout = () => {
+    setLogoutConfirmOpen(true)
+  }
+
+  // Añadir esta función para realizar el cierre de sesión
+  const confirmLogout = async () => {
     try {
       await fetch("/api/auth/logout", {
         method: "POST",
@@ -409,10 +594,15 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
   }
 
   const handleDeleteTask = async (id: number) => {
-    if (!confirm("¿Estás seguro de que deseas eliminar esta tarea?")) return
+    setTaskToDelete(id)
+    setDeleteConfirmOpen(true)
+  }
+
+  const confirmDeleteTask = async () => {
+    if (!taskToDelete) return
 
     try {
-      const response = await fetch(`/api/tasks/${id}`, {
+      const response = await fetch(`/api/tasks/${taskToDelete}`, {
         method: "DELETE",
       })
 
@@ -420,7 +610,9 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
         throw new Error("Error al eliminar la tarea")
       }
 
-      setTasks((prev) => prev.filter((t) => t.id !== id))
+      setTasks((prev) => prev.filter((t) => t.id !== taskToDelete))
+      setDeleteConfirmOpen(false)
+      setTaskToDelete(null)
     } catch (error) {
       console.error("Error al eliminar tarea:", error)
       alert("Error al eliminar la tarea")
@@ -435,6 +627,66 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
     } else {
       return categories.find((c) => c.id === selectedCategoryId) || null
     }
+  }
+
+  const executeConfirmedVoiceAction = async () => {
+    if (!pendingVoiceAction) return
+
+    switch (pendingVoiceAction.type) {
+      case "assignCategoryToAll": {
+        const { categoryId, categoryName, pendingTasks } = pendingVoiceAction.data
+
+        let updatedCount = 0
+        const updatePromises = pendingTasks.map(async (task: Task) => {
+          try {
+            const response = await fetch(`/api/tasks/${task.id}`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                categoryId: categoryId,
+              }),
+            })
+
+            if (response.ok) {
+              updatedCount++
+              return await response.json()
+            }
+            return null
+          } catch (error) {
+            console.error(`Error al actualizar tarea ${task.id}:`, error)
+            return null
+          }
+        })
+
+        Promise.all(updatePromises).then((updatedTasks) => {
+          // Filtrar tareas nulas (las que fallaron)
+          const validUpdatedTasks = updatedTasks.filter((t) => t !== null)
+
+          // Actualizar el estado de las tareas
+          setTasks((prev) => {
+            const newTasks = [...prev]
+            validUpdatedTasks.forEach((updatedTask) => {
+              const index = newTasks.findIndex((t) => t.id === updatedTask.id)
+              if (index !== -1) {
+                newTasks[index] = updatedTask
+              }
+            })
+            return newTasks
+          })
+
+          const resultText = `He asignado la categoría ${categoryName} a ${updatedCount} tareas pendientes.`
+          setFeedback(resultText)
+          speakText(resultText)
+        })
+        break
+      }
+      // Puedes añadir más casos para otras acciones que requieran confirmación
+    }
+
+    setVoiceConfirmOpen(false)
+    setPendingVoiceAction(null)
   }
 
   return (
@@ -472,7 +724,7 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
                   <Button
                     onClick={() =>
                       speakText(
-                        'Puedes decir: "Crear tarea", "Mis tareas pendientes", "Completar tarea" o "Filtrar por categoría"',
+                        'Puedes decir: "Crear tarea", "Mis tareas pendientes", "Completar tarea", "Filtrar por categoría", "Asignar categoría [nombre] a tarea [título]", "Asignar categoría a todas como [nombre]" o "Quitar categoría de tarea [título]"',
                       )
                     }
                     variant="outline"
@@ -570,6 +822,42 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
       />
 
       <audio ref={audioRef} className="hidden" />
+
+      {/* Diálogo de confirmación para eliminar tarea */}
+      <ConfirmationDialog
+        open={deleteConfirmOpen}
+        onOpenChange={setDeleteConfirmOpen}
+        title="Eliminar tarea"
+        description="¿Estás seguro de que deseas eliminar esta tarea? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        onConfirm={confirmDeleteTask}
+      />
+
+      {/* Diálogo de confirmación para acciones por voz */}
+      <ConfirmationDialog
+        open={voiceConfirmOpen}
+        onOpenChange={setVoiceConfirmOpen}
+        title="Confirmar acción"
+        description={
+          pendingVoiceAction?.type === "assignCategoryToAll"
+            ? `¿Quieres asignar la categoría ${pendingVoiceAction.data.categoryName} a ${pendingVoiceAction.data.pendingTasks.length} tareas pendientes?`
+            : "¿Confirmas esta acción?"
+        }
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+        onConfirm={executeConfirmedVoiceAction}
+      />
+      {/* Diálogo de confirmación para cerrar sesión */}
+      <ConfirmationDialog
+        open={logoutConfirmOpen}
+        onOpenChange={setLogoutConfirmOpen}
+        title="Cerrar sesión"
+        description="¿Estás seguro de que deseas cerrar sesión?"
+        confirmText="Cerrar sesión"
+        cancelText="Cancelar"
+        onConfirm={confirmLogout}
+      />
     </main>
   )
 }
