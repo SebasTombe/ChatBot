@@ -41,6 +41,7 @@ model Task {
   createdAt   DateTime  @default(now())
   dueDate     DateTime?
   description String?   @db.Text
+  priority    String    @default("media")
   userId      Int
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   categoryId  Int?

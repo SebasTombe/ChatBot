@@ -12,6 +12,8 @@ export async function POST(req: NextRequest) {
     // Verificar credenciales
     if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
       console.error("Credenciales de AWS no configuradas")
+      //console.log("entro aca", process.env);
+      
       return NextResponse.json({ error: "Credenciales de AWS no configuradas" }, { status: 500 })
     }
 

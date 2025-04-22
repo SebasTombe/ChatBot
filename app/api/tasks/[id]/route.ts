@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const taskId = Number.parseInt(params.id)
-    const { title, completed, dueDate, description, categoryId } = await req.json()
+    const { title, completed, dueDate, description, categoryId, priority } = await req.json()
 
     // Verificar que la tarea pertenece al usuario
     const existingTask = await prisma.task.findUnique({
@@ -43,8 +43,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         completed: completed !== undefined ? completed : existingTask.completed,
         dueDate: dueDate !== undefined ? new Date(dueDate) : existingTask.dueDate,
         description: description !== undefined ? description : existingTask.description,
-        categoryId:
-          categoryId !== undefined ? (categoryId === null ? null : Number(categoryId)) : existingTask.categoryId,
+        categoryId: categoryId !== undefined ? (categoryId === null ? null : Number(categoryId)) : existingTask.categoryId,
+        priority: priority !== undefined ? priority : existingTask.priority,
       },
       include: {
         category: true,
@@ -54,7 +54,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json(task)
   } catch (error) {
     console.error("Error al actualizar tarea:", error)
-    return NextResponse.json({ error: "Error al actualizar tarea" }, { status: 500 })
+    return NextResponse.json({ error: `Error al actualizar tarea ${error}` }, { status: 500 })
   }
 }
 
@@ -85,6 +85,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error("Error al eliminar tarea:", error)
-    return NextResponse.json({ error: "Error al eliminar tarea" }, { status: 500 })
+    return NextResponse.json({ error: `Error al eliminar tarea ${error}` }, { status: 500 })
   }
 }

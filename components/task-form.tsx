@@ -18,12 +18,17 @@ import { Textarea } from "@/components/ui/textarea"
 import CategorySelector from "./category-selector"
 import ConfirmationDialog from "@/components/confirmation-dialog"
 
+// Añadir import de RadioGroup
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Circle, CheckCircle2, AlertTriangle } from "lucide-react"
+
 interface Category {
   id: number
   name: string
   color: string
 }
 
+// Actualizar la interfaz Task para incluir priority
 interface Task {
   id?: number
   title: string
@@ -31,6 +36,7 @@ interface Task {
   dueDate?: string | null
   categoryId?: number | null
   category?: Category | null
+  priority?: string
 }
 
 interface TaskFormProps {
@@ -60,6 +66,9 @@ export default function TaskForm({
   const [hasChanges, setHasChanges] = useState(false)
   const [attemptingClose, setAttemptingClose] = useState(false)
 
+  // Después de useState, añadir el estado para la prioridad
+  const [priority, setPriority] = useState(initialData.priority || "media")
+
   // Modificar los manejadores de cambio para detectar cambios
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setTaskTitle(e.target.value)
@@ -78,6 +87,12 @@ export default function TaskForm({
 
   const handleCategoryChange = (id: number | null) => {
     setCategoryId(id)
+    setHasChanges(true)
+  }
+
+  // Añadir el manejador de cambio de prioridad
+  const handlePriorityChange = (value: string) => {
+    setPriority(value)
     setHasChanges(true)
   }
 
@@ -103,12 +118,14 @@ export default function TaskForm({
 
     setLoading(true)
     try {
+      // En el handleSubmit, añadir priority al objeto de tarea
       await onSave({
         id: initialData.id,
         title: taskTitle.trim(),
         description: description.trim() || null,
         dueDate: dueDate ? new Date(dueDate).toISOString() : null,
         categoryId,
+        priority,
       })
 
       // Resetear el formulario
@@ -167,6 +184,33 @@ export default function TaskForm({
             <div className="grid gap-2">
               <Label>Categoría (opcional)</Label>
               <CategorySelector selectedCategoryId={categoryId} onChange={handleCategoryChange} />
+            </div>
+            {/* Después del campo de categoría, añadir el selector de prioridad */}
+            <div className="grid gap-2">
+              <Label>Prioridad</Label>
+              <RadioGroup value={priority} onValueChange={handlePriorityChange} className="flex space-x-2">
+                <div className="flex items-center space-x-1">
+                  <RadioGroupItem value="alta" id="alta" />
+                  <Label htmlFor="alta" className="cursor-pointer flex items-center gap-1">
+                    <AlertTriangle className="h-4 w-4 text-red-500" />
+                    Alta
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <RadioGroupItem value="media" id="media" />
+                  <Label htmlFor="media" className="cursor-pointer flex items-center gap-1">
+                    <CheckCircle2 className="h-4 w-4 text-amber-500" />
+                    Media
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <RadioGroupItem value="baja" id="baja" />
+                  <Label htmlFor="baja" className="cursor-pointer flex items-center gap-1">
+                    <Circle className="h-4 w-4 text-green-500" />
+                    Baja
+                  </Label>
+                </div>
+              </RadioGroup>
             </div>
           </div>
           <DialogFooter>

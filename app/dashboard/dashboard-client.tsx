@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Mic, MicOff, Volume2, CheckCircle, Clock, LogOut, Plus, Filter } from "lucide-react"
+// Importar los íconos necesarios para la prioridad
+import { CheckCircle, Clock, LogOut, Plus, Filter, MicOff, Mic, Volume2 } from "lucide-react"
 import TaskList from "@/components/task-list"
 import VoiceRecognition from "@/components/voice-recognition"
 import { useRouter } from "next/navigation"
@@ -19,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+// Después de importar CategoryBadge, importar PriorityBadge
 import CategoryBadge from "@/components/category-badge"
 import ConfirmationDialog from "@/components/confirmation-dialog"
 
@@ -28,6 +30,7 @@ interface Category {
   color: string
 }
 
+// Actualizar la interfaz Task para incluir priority
 interface Task {
   id: number
   title: string
@@ -37,6 +40,7 @@ interface Task {
   description: string | null
   categoryId: number | null
   category: Category | null
+  priority: string
 }
 
 interface User {
@@ -101,6 +105,7 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
     }
   }
 
+  // En el método fetchTasks, actualizar para ordenar por prioridad
   const fetchTasks = async () => {
     try {
       let url = "/api/tasks"
@@ -117,7 +122,16 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
       const response = await fetch(url)
       if (response.ok) {
         const data = await response.json()
-        setTasks(data)
+
+        // Ordenar las tareas por prioridad
+        const priorityOrder = { alta: 0, media: 1, baja: 2 }
+        const sortedTasks = [...data].sort((a, b) => {
+          const priorityA = priorityOrder[a.priority as keyof typeof priorityOrder] || 1
+          const priorityB = priorityOrder[b.priority as keyof typeof priorityOrder] || 1
+          return priorityA - priorityB
+        })
+
+        setTasks(sortedTasks)
       }
     } catch (error) {
       console.error("Error al cargar tareas:", error)
@@ -447,6 +461,65 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
         )
       }
     }
+
+    // Actualizar el manejo de comandos de voz para incluir prioridad
+    else if (
+      lowerTranscript.includes("asignar prioridad") ||
+      lowerTranscript.includes("cambiar prioridad") ||
+      lowerTranscript.includes("marcar como prioritaria")
+    ) {
+      // Extraer el nivel de prioridad y el nombre de la tarea
+      const match =
+        transcript.match(
+          /(?:asignar|cambiar) prioridad (?:a|de) (?:la )?tarea (.+?) (?:como|a) (?:prioridad )?(alta|media|baja)/i,
+        ) || transcript.match(/marcar (?:la )?tarea (.+?) como (?:prioridad )?(alta|media|baja)/i)
+
+      if (match) {
+        const taskTitle = match[1].trim()
+        const priority = match[2].toLowerCase()
+
+        // Buscar la tarea por título
+        const task = tasks.find((t) => t.title.toLowerCase().includes(taskTitle.toLowerCase()))
+
+        if (!task) {
+          speakText(`No encontré la tarea "${taskTitle}" en tu lista.`)
+          return
+        }
+
+        // Actualizar la tarea con la nueva prioridad
+        try {
+          const response = await fetch(`/api/tasks/${task.id}`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              priority: priority,
+            }),
+          })
+
+          console.log('respuesta', response);
+          
+          /*if (!response.ok) {
+            throw new Error("Error al actualizar la tarea")
+          }*/
+
+          const updatedTask = await response.json()
+          setTasks((prev) => prev.map((t) => (t.id === task.id ? updatedTask : t)))
+
+          const confirmationText = `He cambiado la prioridad de la tarea "${task.title}" a ${priority}`
+          setFeedback(confirmationText)
+          speakText(confirmationText)
+        } catch (error) {
+          console.error("Error al asignar prioridad:", error)
+          speakText("Hubo un error al asignar la prioridad a la tarea")
+        }
+      } else {
+        speakText(
+          "No entendí qué prioridad quieres asignar a qué tarea. Por favor, intenta de nuevo con el formato: Asignar prioridad a tarea [nombre de tarea] como [alta/media/baja]",
+        )
+      }
+    }
   }
 
   const speakText = async (text: string) => {
@@ -724,7 +797,7 @@ export default function DashboardClient({ initialTasks, user }: DashboardClientP
                   <Button
                     onClick={() =>
                       speakText(
-                        'Puedes decir: "Crear tarea", "Mis tareas pendientes", "Completar tarea", "Filtrar por categoría", "Asignar categoría [nombre] a tarea [título]", "Asignar categoría a todas como [nombre]" o "Quitar categoría de tarea [título]"',
+                        'Puedes decir: "Crear tarea", "Mis tareas pendientes", "Completar tarea", "Filtrar por categoría", "Asignar categoría [nombre] a tarea [título]", "Asignar categoría a todas como [nombre]", "Quitar categoría de tarea [título]" o "Asignar prioridad a tarea [título] como [alta/media/baja]"',
                       )
                     }
                     variant="outline"

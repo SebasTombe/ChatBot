@@ -5,4 +5,5 @@ export interface Task {
   createdAt: string
   dueDate?: string
   description?: string
+  priority: string // Añadir campo de prioridad
 }
