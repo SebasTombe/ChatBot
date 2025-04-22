@@ -11,15 +11,27 @@ datasource db {
 }
 
 model User {
-  id            Int             @id @default(autoincrement())
-  email         String          @unique
-  password      String
-  name          String?
-  createdAt     DateTime        @default(now())
-  updatedAt     DateTime        @updatedAt
-  tasks         Task[]
-  voiceCommands VoiceCommand[]
-  preference    UserPreference?
+  id         Int          @id @default(autoincrement())
+  email      String       @unique
+  password   String
+  name       String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  tasks      Task[]
+  categories Category[]
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String
+  color     String   @default("#6366F1") // Color por defecto (indigo)
+  createdAt DateTime @default(now())
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tasks     Task[]
+
+  @@unique([name, userId]) // Un usuario no puede tener dos categorías con el mismo nombre
+  @@index([userId])
 }
 
 model Task {
@@ -31,9 +43,12 @@ model Task {
   description String?   @db.Text
   userId      Int
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId  Int?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
 
   @@index([userId, completed])
   @@index([dueDate])
+  @@index([categoryId])
 }
 
 model VoiceCommand {

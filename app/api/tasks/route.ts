@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma"
 import { getCurrentUser } from "@/lib/auth"
 
 // Obtener todas las tareas del usuario actual
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
     const user = await getCurrentUser()
 
@@ -11,12 +11,27 @@ export async function GET() {
       return NextResponse.json({ error: "No autorizado" }, { status: 401 })
     }
 
+    // Obtener el parámetro de categoría si existe
+    const { searchParams } = new URL(req.url)
+    const categoryId = searchParams.get("categoryId")
+
+    // Construir la consulta
+    const whereClause: any = {
+      userId: user.id,
+    }
+
+    // Si se especifica una categoría, filtrar por ella
+    if (categoryId) {
+      whereClause.categoryId = categoryId === "null" ? null : Number(categoryId)
+    }
+
     const tasks = await prisma.task.findMany({
-      where: {
-        userId: user.id,
-      },
+      where: whereClause,
       orderBy: {
         createdAt: "desc",
+      },
+      include: {
+        category: true,
       },
     })
 
@@ -42,12 +57,27 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "El título es obligatorio" }, { status: 400 })
     }
 
+    // Si se proporciona una categoría, verificar que pertenece al usuario
+    if (categoryId) {
+      const category = await prisma.category.findUnique({
+        where: { id: Number(categoryId) },
+      })
+
+      if (!category || category.userId !== user.id) {
+        return NextResponse.json({ error: "Categoría no válida" }, { status: 400 })
+      }
+    }
+
     const task = await prisma.task.create({
       data: {
         title,
         dueDate: dueDate ? new Date(dueDate) : null,
         description,
         userId: user.id,
+        categoryId: categoryId ? Number(categoryId) : null,
+      },
+      include: {
+        category: true,
       },
     })
 

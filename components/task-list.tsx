@@ -3,7 +3,13 @@
 import { CheckCircle, Circle, Calendar } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
+import CategoryBadge from "./category-badge"
 
+interface Category {
+  id: number
+  name: string
+  color: string
+}
 interface Task {
   id: number
   title: string
@@ -11,6 +17,7 @@ interface Task {
   createdAt: string
   dueDate: string | null
   description: string | null
+  category: Category | null
 }
 
 interface TaskListProps {
@@ -31,9 +38,8 @@ export default function TaskList({ tasks, onComplete, completed = false }: TaskL
       {tasks.map((task) => (
         <li
           key={task.id}
-          className={`flex items-start justify-between p-3 rounded-md ${
-            completed ? "bg-gray-50" : "bg-white border border-gray-200"
-          }`}
+          className={`flex items-start justify-between p-3 rounded-md ${completed ? "bg-gray-50" : "bg-white border border-gray-200"
+            }`}
         >
           <div className="flex items-start gap-3">
             <button
@@ -44,7 +50,10 @@ export default function TaskList({ tasks, onComplete, completed = false }: TaskL
             </button>
 
             <div>
-              <p className={completed ? "text-gray-500 line-through" : "text-gray-800"}>{task.title}</p>
+              <div className="flex items-center gap-2">
+                <p className={completed ? "text-gray-500 line-through" : "text-gray-800"}>{task.title}</p>
+                {task.category && <CategoryBadge category={task.category} />}
+              </div>
 
               <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                 {task.createdAt && (
