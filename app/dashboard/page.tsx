@@ -18,6 +18,9 @@ export default async function DashboardPage() {
     orderBy: {
       createdAt: "desc",
     },
+    include: {
+      category: true,
+    },
   })
 
   return (
@@ -26,4 +29,3 @@ export default async function DashboardPage() {
     </div>
   )
 }
-

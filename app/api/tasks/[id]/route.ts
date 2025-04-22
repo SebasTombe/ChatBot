@@ -12,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     }
 
     const taskId = Number.parseInt(params.id)
-    const { title, completed, dueDate, description } = await req.json()
+    const { title, completed, dueDate, description, categoryId } = await req.json()
 
     // Verificar que la tarea pertenece al usuario
     const existingTask = await prisma.task.findUnique({
@@ -23,6 +23,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
       return NextResponse.json({ error: "Tarea no encontrada" }, { status: 404 })
     }
 
+    // Si se proporciona una categoría, verificar que pertenece al usuario
+    if (categoryId !== undefined) {
+      if (categoryId !== null) {
+        const category = await prisma.category.findUnique({
+          where: { id: Number(categoryId) },
+        })
+
+        if (!category || category.userId !== user.id) {
+          return NextResponse.json({ error: "Categoría no válida" }, { status: 400 })
+        }
+      }
+    }
+
     const task = await prisma.task.update({
       where: { id: taskId },
       data: {
@@ -30,6 +43,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         completed: completed !== undefined ? completed : existingTask.completed,
         dueDate: dueDate !== undefined ? new Date(dueDate) : existingTask.dueDate,
         description: description !== undefined ? description : existingTask.description,
+        categoryId:
+          categoryId !== undefined ? (categoryId === null ? null : Number(categoryId)) : existingTask.categoryId,
+      },
+      include: {
+        category: true,
       },
     })
 
@@ -70,4 +88,3 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
     return NextResponse.json({ error: "Error al eliminar tarea" }, { status: 500 })
   }
 }
-

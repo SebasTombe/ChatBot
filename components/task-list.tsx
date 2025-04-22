@@ -3,6 +3,13 @@
 import { CheckCircle, Circle, Calendar } from "lucide-react"
 import { formatDistanceToNow } from "date-fns"
 import { es } from "date-fns/locale"
+import CategoryBadge from "./category-badge"
+
+interface Category {
+  id: number
+  name: string
+  color: string
+}
 
 interface Task {
   id: number
@@ -11,6 +18,7 @@ interface Task {
   createdAt: string
   dueDate: string | null
   description: string | null
+  category: Category | null
 }
 
 interface TaskListProps {
@@ -44,7 +52,10 @@ export default function TaskList({ tasks, onComplete, completed = false }: TaskL
             </button>
 
             <div>
-              <p className={completed ? "text-gray-500 line-through" : "text-gray-800"}>{task.title}</p>
+              <div className="flex items-center gap-2">
+                <p className={completed ? "text-gray-500 line-through" : "text-gray-800"}>{task.title}</p>
+                {task.category && <CategoryBadge category={task.category} />}
+              </div>
 
               <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
                 {task.createdAt && (
@@ -65,4 +76,3 @@ export default function TaskList({ tasks, onComplete, completed = false }: TaskL
     </ul>
   )
 }
-
